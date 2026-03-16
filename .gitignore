@@ -1,0 +1,23 @@
+# Secure Secrets
+.streamlit/secrets.toml
+.env
+
+# Virtual Environments
+myenv/
+venv/
+env/
+
+# University Data (Keep private)
+clg_data/
+
+# Python internal files
+__pycache__/
+*.py[cod]
+
+# OS files
+.DS_Store
+Thumbs.db
+# Ignore local vector store data
+faiss_index/
+*.faiss
+*.pkl
