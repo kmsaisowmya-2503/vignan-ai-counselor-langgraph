@@ -143,10 +143,20 @@ def retrieve_node(state: AgentState):
     return {"context_docs": retriever.invoke(state['question']) if retriever else []}
 
 def generate_node(state: AgentState):
-    llm = ChatGroq(api_key=groq_api_key, model_name="llama-3.1-8b-instant", temperature=0.1)
-    context = "\n".join([d.page_content for d in state['context_docs']])
+    # Fix 1: Use 'model' instead of 'model_name'
+    # Fix 2: Ensure you are using a current model ID like 'llama-3.1-8b-instant'
+    llm = ChatGroq(
+        api_key=groq_api_key, 
+        model="llama-3.1-8b-instant", 
+        temperature=0.1
+    )
+    
+    # Safely get context and resume
+    context_list = state.get('context_docs', [])
+    context = "\n".join([d.page_content for d in context_list])
     resume = st.session_state.get("resume_text", "Not uploaded.")
     
+    # Constructing the system prompt
     sys_p = f"""You are the Vignan University AI Student Counselor. 
     POLICY:
     1. If the user asks about sensitive topics (self-harm, suicidal thoughts, extreme distress), prioritize empathy and strictly provide contact info for university psychologists from the context.
@@ -156,7 +166,16 @@ def generate_node(state: AgentState):
     User: {st.session_state.user_name}
     Context: {context} | Resume: {resume}"""
     
-    return {"answer": llm.invoke(f"{sys_p}\n\nQuery: {state['question']}").content}
+    # Fix 3: Formatting the invoke call for better compatibility
+    prompt = f"{sys_p}\n\nQuery: {state['question']}"
+    
+    try:
+        response = llm.invoke(prompt)
+        return {"answer": response.content}
+    except Exception as e:
+        # This helps you see the REAL error in the Streamlit logs if it fails again
+        st.error(f"Groq API Error: {str(e)}")
+        return {"answer": "I'm having trouble connecting to my brain (Groq). Please try again in a moment."}
 
 workflow = StateGraph(AgentState)
 workflow.add_node("router", router_node); workflow.add_node("retrieve", retrieve_node); workflow.add_node("generate", generate_node)
